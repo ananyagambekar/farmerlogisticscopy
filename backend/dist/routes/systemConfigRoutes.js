@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const systemConfigController_1 = require("../controllers/systemConfigController");
+const auth_1 = require("../middleware/auth");
+const router = (0, express_1.Router)();
+router.use(auth_1.authenticateJWT);
+router.get('/', systemConfigController_1.getSystemConfigs);
+router.put('/:key', (0, auth_1.authorizeRoles)('ADMIN'), systemConfigController_1.updateSystemConfig);
+exports.default = router;

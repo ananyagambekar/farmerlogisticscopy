@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  FARMER
+  AGENT
+  DRIVER
+  RECEIVER
+  ADMIN
+}
+
+enum CropStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+  EXPIRED
+}
+
+enum BookingStatus {
+  PENDING
+  MATCHED
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+}
+
+enum VehicleStatus {
+  IDLE
+  IN_TRANSIT
+  MAINTENANCE
+  INACTIVE
+}
+
+enum TripStatus {
+  ASSIGNED
+  EN_ROUTE_PICKUP
+  AT_PICKUP
+  IN_TRANSIT
+  AT_DELIVERY
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id            String             @id @default(uuid())
+  phone         String             @unique
+  email         String?            @unique
+  password      String
+  fullName      String
+  role          Role               @default(FARMER)
+  isActive      Boolean            @default(true)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  cropListings  CropListing[]
+  bookings      TransportBooking[]
+  vehicles      DriverVehicle[]
+  trips         TripAssignment[]
+
+  @@map("users")
+}
+
+model CropListing {
+  id               String             @id @default(uuid())
+  farmerId         String
+  farmer           User               @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  cropType         String
+  quantityKg       Float
+  askingPricePerKg Float
+  location         String
+  description      String?
+  status           CropStatus         @default(AVAILABLE)
+  harvestDate      DateTime
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  transportBookings TransportBooking[]
+
+  @@map("crop_listings")
+}
+
+model TransportBooking {
+  id                  String           @id @default(uuid())
+  requesterId         String
+  requester           User             @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  cropListingId       String?
+  cropListing         CropListing?     @relation(fields: [cropListingId], references: [id], onDelete: SetNull)
+  origin              String
+  destination         String
+  totalWeightKg       Float
+  vehicleTypeRequired String
+  estimatedCost       Float
+  status              BookingStatus    @default(PENDING)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  tripAssignments     TripAssignment[]
+
+  @@map("transport_bookings")
+}
+
+model DriverVehicle {
+  id              String           @id @default(uuid())
+  driverId        String
+  driver          User             @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  vehicleType     String
+  capacityKg      Float
+  licensePlate    String           @unique
+  status          VehicleStatus    @default(IDLE)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  tripAssignments TripAssignment[]
+
+  @@map("driver_vehicles")
+}
+
+model TripAssignment {
+  id                 String              @id @default(uuid())
+  bookingId          String
+  booking            TransportBooking    @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  driverId           String
+  driver             User                @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  vehicleId          String
+  vehicle            DriverVehicle       @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  status             TripStatus          @default(ASSIGNED)
+  price              Float
+  assignedAt         DateTime            @default(now())
+  startedAt          DateTime?
+  completedAt        DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  deliveryStatusLogs DeliveryStatusLog[]
+
+  @@map("trip_assignments")
+}
+
+model DeliveryStatusLog {
+  id               String         @id @default(uuid())
+  tripAssignmentId String
+  tripAssignment   TripAssignment @relation(fields: [tripAssignmentId], references: [id], onDelete: Cascade)
+  status           TripStatus
+  location         String
+  notes            String?
+  timestamp        DateTime       @default(now())
+
+  @@map("delivery_status_logs")
+}
+
+model SystemConfig {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_configs")
+}

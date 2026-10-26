@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const bookingController_1 = require("../controllers/bookingController");
+const auth_1 = require("../middleware/auth");
+const router = (0, express_1.Router)();
+router.use(auth_1.authenticateJWT);
+router.get('/', bookingController_1.getBookings);
+router.post('/', (0, auth_1.authorizeRoles)('FARMER', 'AGENT', 'ADMIN'), bookingController_1.createBooking);
+router.post('/estimate', (0, auth_1.authorizeRoles)('FARMER', 'AGENT', 'ADMIN', 'RECEIVER', 'DRIVER'), bookingController_1.estimateBookingCost);
+router.patch('/:id/status', (0, auth_1.authorizeRoles)('AGENT', 'ADMIN'), bookingController_1.updateBookingStatus);
+router.post('/:id/assign', (0, auth_1.authorizeRoles)('AGENT', 'ADMIN'), bookingController_1.assignBooking);
+exports.default = router;

@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const deliveryController_1 = require("../controllers/deliveryController");
+const auth_1 = require("../middleware/auth");
+const router = (0, express_1.Router)();
+router.use(auth_1.authenticateJWT);
+router.get('/incoming', (0, auth_1.authorizeRoles)('RECEIVER', 'AGENT', 'ADMIN'), deliveryController_1.getIncomingDeliveries);
+router.post('/:id/confirm', (0, auth_1.authorizeRoles)('RECEIVER', 'AGENT', 'ADMIN'), deliveryController_1.confirmDelivery);
+router.get('/history', (0, auth_1.authorizeRoles)('RECEIVER', 'AGENT', 'ADMIN'), deliveryController_1.getDeliveryHistory);
+exports.default = router;

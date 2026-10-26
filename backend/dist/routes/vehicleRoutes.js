@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const vehicleController_1 = require("../controllers/vehicleController");
+const auth_1 = require("../middleware/auth");
+const router = (0, express_1.Router)();
+router.use(auth_1.authenticateJWT);
+router.get('/', vehicleController_1.getVehicles);
+router.post('/', (0, auth_1.authorizeRoles)('DRIVER', 'ADMIN'), vehicleController_1.registerVehicle);
+router.patch('/:id/status', (0, auth_1.authorizeRoles)('DRIVER', 'ADMIN'), vehicleController_1.updateVehicleStatus);
+exports.default = router;

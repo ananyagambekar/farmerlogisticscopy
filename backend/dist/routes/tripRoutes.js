@@ -1,0 +1,15 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const tripController_1 = require("../controllers/tripController");
+const auth_1 = require("../middleware/auth");
+const router = (0, express_1.Router)();
+router.use(auth_1.authenticateJWT);
+router.get('/', tripController_1.getTrips);
+router.get('/assigned', (0, auth_1.authorizeRoles)('DRIVER', 'AGENT', 'ADMIN'), tripController_1.getAssignedTrips);
+router.get('/:id', tripController_1.getTripById);
+router.post('/', (0, auth_1.authorizeRoles)('AGENT', 'ADMIN'), tripController_1.createTrip);
+router.patch('/:id/status', (0, auth_1.authorizeRoles)('DRIVER', 'AGENT', 'RECEIVER', 'ADMIN'), tripController_1.updateTripStatus);
+router.post('/:id/tracking', (0, auth_1.authorizeRoles)('DRIVER', 'AGENT', 'ADMIN'), tripController_1.addTrackingLog);
+router.get('/:id/tracking', tripController_1.getTripTrackingLogs);
+exports.default = router;

@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const cropController_1 = require("../controllers/cropController");
+const auth_1 = require("../middleware/auth");
+const router = (0, express_1.Router)();
+router.use(auth_1.authenticateJWT);
+router.get('/', cropController_1.getCrops);
+router.post('/', (0, auth_1.authorizeRoles)('FARMER', 'AGENT', 'ADMIN'), cropController_1.createCrop);
+router.put('/:id', (0, auth_1.authorizeRoles)('FARMER', 'AGENT', 'ADMIN'), cropController_1.updateCrop);
+router.patch('/:id/status', (0, auth_1.authorizeRoles)('FARMER', 'AGENT', 'ADMIN'), cropController_1.updateCropStatus);
+router.delete('/:id', (0, auth_1.authorizeRoles)('FARMER', 'AGENT', 'ADMIN'), cropController_1.deleteCrop);
+exports.default = router;
