@@ -30,6 +30,22 @@ class ApiService {
     return cleaned;
   }
 
+  static Future<double> calculatePricingEstimate({
+    required double weightKg,
+    required String vehicleType,
+    required String origin,
+    required String destination,
+  }) async {
+    // Distance rule or tariff calculation
+    double baseRate = 5000.0; // base transport charge
+    double distanceKm = 120.0; // estimated default distance between locations
+    double weightFactor = (weightKg / 1000.0) * 1500.0;
+    double vehicleMultiplier = vehicleType.contains('Refrigerated') ? 1.3 : 1.0;
+
+    double calculated = (baseRate + (distanceKm * 50) + weightFactor) * vehicleMultiplier;
+    return calculated.clamp(3000.0, 150000.0);
+  }
+
   static Future<Map<String, dynamic>> login(String phone, String password) async {
     final normalized = normalizePhone(phone);
     final response = await http.post(

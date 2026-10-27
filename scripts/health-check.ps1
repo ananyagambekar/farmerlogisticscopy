@@ -1,14 +1,16 @@
-# PowerShell health check script for Dynamic Agri-Logistics backend API
+# Dynamic Agri-Logistics Health Check Script
+$ErrorActionPreference = "Continue"
 
-$healthUrl = "http://localhost:3000/api/v1/health"
-
-Write-Host "🔍 Checking Backend Health Endpoint at $healthUrl..." -ForegroundColor Yellow
+Write-Host "🩺 Dynamic Agri-Logistics Health Check..." -ForegroundColor Cyan
 
 try {
-    $response = Invoke-RestMethod -Uri $healthUrl -Method Get -TimeoutSec 5
-    Write-Host "`n✅ Backend API Health Status:" -ForegroundColor Green
-    $response | ConvertTo-Json -Depth 4
+    $res = Invoke-RestMethod -Uri "http://localhost:3000/api/v1/health" -Method Get -TimeoutSec 5
+    Write-Host "✅ Backend API is UP & ONLINE!" -ForegroundColor Green
+    Write-Host "  - Service: $($res.service)" -ForegroundColor White
+    Write-Host "  - Version: $($res.version)" -ForegroundColor White
+    Write-Host "  - Environment: $($res.environment)" -ForegroundColor White
+    Write-Host "  - Server Timestamp: $($res.timestamp)" -ForegroundColor White
 } catch {
-    Write-Host "`n❌ Backend API is not responding or offline on port 3000." -ForegroundColor Red
-    Write-Host "Error: $_" -ForegroundColor Red
+    Write-Host "❌ Backend API is not responding on http://localhost:3000/api/v1/health" -ForegroundColor Red
+    Write-Host "   Please ensure the backend process is running (`npm run dev` inside backend/)." -ForegroundColor Yellow
 }

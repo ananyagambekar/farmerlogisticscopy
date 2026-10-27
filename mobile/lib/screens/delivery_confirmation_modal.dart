@@ -113,7 +113,7 @@ class _DeliveryConfirmationModalState extends State<DeliveryConfirmationModal> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.between,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Row(
                   children: [
@@ -131,7 +131,6 @@ class _DeliveryConfirmationModalState extends State<DeliveryConfirmationModal> {
             const Divider(),
             const SizedBox(height: 8),
 
-            // Cargo and Driver Summary
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -150,7 +149,6 @@ class _DeliveryConfirmationModalState extends State<DeliveryConfirmationModal> {
 
             const SizedBox(height: 16),
 
-            // Received Quantity input
             TextField(
               controller: _quantityController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -163,7 +161,6 @@ class _DeliveryConfirmationModalState extends State<DeliveryConfirmationModal> {
 
             const SizedBox(height: 16),
 
-            // Condition Rating Selector
             const Text('Cargo Condition Rating', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
             const SizedBox(height: 8),
             Wrap(
@@ -182,7 +179,7 @@ class _DeliveryConfirmationModalState extends State<DeliveryConfirmationModal> {
                   ),
                   selected: isSelected,
                   selectedColor: color,
-                  backgroundColor: color.withOpacity(0.1),
+                  backgroundColor: color.withValues(alpha: 0.1),
                   onSelected: (val) {
                     if (val) setState(() => _selectedRating = rating);
                   },
@@ -192,7 +189,6 @@ class _DeliveryConfirmationModalState extends State<DeliveryConfirmationModal> {
 
             const SizedBox(height: 16),
 
-            // Issue Notes Field
             TextField(
               controller: _notesController,
               maxLines: 3,

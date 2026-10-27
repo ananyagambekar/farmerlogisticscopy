@@ -33,6 +33,17 @@ app.get('/api/v1/health', async (req, res) => {
   });
 });
 
+app.get('/api/health', async (req, res) => {
+  await store.seedInitialData();
+  return res.status(200).json({
+    status: 'UP',
+    timestamp: new Date().toISOString(),
+    service: 'Dynamic Agri-Logistics Backend API',
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+  });
+});
+
 // Routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/auth', authRoutes);
@@ -62,9 +73,11 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   res.status(500).json({ success: false, message: 'Internal Server Error', error: err.message });
 });
 
-app.listen(PORT, async () => {
-  await store.seedInitialData();
-  console.log(`🌱 Dynamic Agri-Logistics Server listening on port ${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, async () => {
+    await store.seedInitialData();
+    console.log(`🌱 Dynamic Agri-Logistics Server listening on port ${PORT}`);
+  });
+}
 
 export default app;

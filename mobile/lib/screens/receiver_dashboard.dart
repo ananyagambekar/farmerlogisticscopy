@@ -32,10 +32,12 @@ class _ReceiverDashboardState extends State<ReceiverDashboard> {
     try {
       final incoming = await ApiService.getIncomingDeliveries(auth.token!);
       final history = await ApiService.getDeliveryHistory(auth.token!);
-      setState(() {
-        _incomingShipments = incoming;
-        _historyLogs = history;
-      });
+      if (mounted) {
+        setState(() {
+          _incomingShipments = incoming;
+          _historyLogs = history;
+        });
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -95,7 +97,6 @@ class _ReceiverDashboardState extends State<ReceiverDashboard> {
         ),
         body: Column(
           children: [
-            // Header Profile Banner
             Container(
               color: Colors.teal.shade800,
               padding: const EdgeInsets.all(16.0),
@@ -131,7 +132,6 @@ class _ReceiverDashboardState extends State<ReceiverDashboard> {
                   ? const Center(child: CircularProgressIndicator(color: AppColors.primaryGreen))
                   : TabBarView(
                       children: [
-                        // Tab 1: Incoming Shipments
                         RefreshIndicator(
                           onRefresh: _loadData,
                           child: _incomingShipments.isEmpty
@@ -157,7 +157,7 @@ class _ReceiverDashboardState extends State<ReceiverDashboard> {
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Row(
-                                              mainAxisAlignment: MainAxisAlignment.between,
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                               children: [
                                                 Expanded(
                                                   child: Text(
@@ -197,7 +197,6 @@ class _ReceiverDashboardState extends State<ReceiverDashboard> {
                                 ),
                         ),
 
-                        // Tab 2: Historical Verified Delivery Log
                         RefreshIndicator(
                           onRefresh: _loadData,
                           child: _historyLogs.isEmpty
@@ -218,7 +217,7 @@ class _ReceiverDashboardState extends State<ReceiverDashboard> {
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Row(
-                                              mainAxisAlignment: MainAxisAlignment.between,
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                               children: [
                                                 Text(
                                                   conf.cropName ?? 'Verified Shipment',
@@ -235,7 +234,7 @@ class _ReceiverDashboardState extends State<ReceiverDashboard> {
                                             ),
                                             const Divider(),
                                             Row(
-                                              mainAxisAlignment: MainAxisAlignment.between,
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                               children: [
                                                 Text('Received Weight: ${conf.receivedQuantity.toStringAsFixed(0)} kg', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryGreen)),
                                                 if (conf.expectedQuantityKg != null)

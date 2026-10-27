@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { TripAssignment, DeliveryStatusLog, DeliveryConfirmation } from '../types';
-import { Navigation, MapPin, Activity, CheckCircle, AlertTriangle, ShieldCheck, RefreshCw } from 'lucide-react';
+import { Navigation, MapPin, Activity, ShieldCheck, RefreshCw } from 'lucide-react';
+import { MapComponent } from '../components/MapComponent';
 
 export const LiveTrackingPage: React.FC = () => {
   const [trips, setTrips] = useState<TripAssignment[]>([]);
@@ -92,6 +93,8 @@ export const LiveTrackingPage: React.FC = () => {
     );
   }
 
+  const latestLog = trackingLogs.length > 0 ? trackingLogs[trackingLogs.length - 1] : null;
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -100,7 +103,7 @@ export const LiveTrackingPage: React.FC = () => {
             <Activity className="w-6 h-6 text-emerald-600" />
             Live Shipment Tracking & Operations Board
           </h1>
-          <p className="text-sm text-slate-500">Real-time GPS status streams, trip timelines, and delivery discrepancy logs.</p>
+          <p className="text-sm text-slate-500">Real-time GPS status streams, interactive Leaflet route maps, and delivery logs.</p>
         </div>
         <button
           onClick={loadData}
@@ -198,11 +201,26 @@ export const LiveTrackingPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Leaflet Interactive Map View */}
+              <div>
+                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-3">
+                  <MapPin className="w-4 h-4 text-emerald-600" />
+                  Live Route & GIS Spatial Tracking
+                </h3>
+                <MapComponent
+                  pickupLabel={selectedTrip.origin || 'Nakuru Farm'}
+                  destLabel={selectedTrip.destination || 'Nairobi Market'}
+                  driverLat={latestLog?.latitude || -0.7167}
+                  driverLng={latestLog?.longitude || 36.4333}
+                  driverLabel={`Driver: ${selectedTrip.driverName || 'David Ochieng'} (${selectedTrip.vehiclePlate || 'KCF 789X'})`}
+                />
+              </div>
+
               {/* GPS Stream Timeline */}
               <div>
                 <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-4">
-                  <MapPin className="w-4 h-4 text-emerald-600" />
-                  GPS Tracking History Timeline Stream ({trackingLogs.length} Checkpoints)
+                  <Activity className="w-4 h-4 text-emerald-600" />
+                  GPS Checkpoint Log History ({trackingLogs.length} Checkpoints)
                 </h3>
 
                 {trackingLogs.length === 0 ? (
@@ -248,36 +266,26 @@ export const LiveTrackingPage: React.FC = () => {
                   <thead className="bg-slate-100 text-slate-700 uppercase font-semibold text-[11px]">
                     <tr>
                       <th className="px-3 py-2">Trip ID</th>
-                      <th className="px-3 py-2">Crop</th>
-                      <th className="px-3 py-2">Received Weight</th>
+                      <th className="px-3 py-2">Received Qty</th>
                       <th className="px-3 py-2">Condition</th>
-                      <th className="px-3 py-2">Discrepancy Notes</th>
+                      <th className="px-3 py-2">Notes</th>
                       <th className="px-3 py-2">Confirmed At</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {deliveryHistory.map((d) => (
-                      <tr key={d.id} className="hover:bg-slate-50">
-                        <td className="px-3 py-2 font-mono font-semibold text-slate-900">{d.tripId}</td>
-                        <td className="px-3 py-2">{d.cropName || 'Maize (Grade A)'}</td>
-                        <td className="px-3 py-2 font-bold text-slate-900">{d.receivedQuantity} kg</td>
+                    {deliveryHistory.map((item) => (
+                      <tr key={item.id} className="hover:bg-slate-50">
+                        <td className="px-3 py-2 font-mono font-medium">{item.tripId}</td>
+                        <td className="px-3 py-2 font-bold text-slate-800">{item.receivedQuantity} kg</td>
                         <td className="px-3 py-2">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              d.conditionRating === 'EXCELLENT'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : d.conditionRating === 'GOOD'
-                                ? 'bg-teal-100 text-teal-800'
-                                : d.conditionRating === 'ACCEPTABLE'
-                                ? 'bg-amber-100 text-amber-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}
-                          >
-                            {d.conditionRating}
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                            {item.conditionRating}
                           </span>
                         </td>
-                        <td className="px-3 py-2 text-slate-500 italic">{d.issueNotes || 'No issues reported'}</td>
-                        <td className="px-3 py-2 text-slate-400">{d.confirmedAt ? new Date(d.confirmedAt).toLocaleDateString() : ''}</td>
+                        <td className="px-3 py-2 text-slate-500">{item.issueNotes || 'No issues reported'}</td>
+                        <td className="px-3 py-2 font-mono text-slate-400">
+                          {item.confirmedAt ? new Date(item.confirmedAt).toLocaleDateString() : 'Recent'}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

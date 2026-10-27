@@ -7,7 +7,6 @@ import '../models/vehicle.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
-import 'live_tracking_screen.dart';
 
 class AgentDashboard extends StatefulWidget {
   const AgentDashboard({super.key});
@@ -39,7 +38,8 @@ class _AgentDashboardState extends State<AgentDashboard> with SingleTickerProvid
   }
 
   Future<void> _loadData() async {
-    final token = Provider.of<AuthService>(context, listen: false).token;
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final token = authService.token;
     if (token == null) return;
 
     setState(() => _loading = true);
@@ -49,13 +49,15 @@ class _AgentDashboardState extends State<AgentDashboard> with SingleTickerProvid
       final users = await ApiService.getUsers(token);
       final vehicles = await ApiService.getVehicles(token);
 
-      setState(() {
-        _bookings = bookings;
-        _crops = crops;
-        _users = users;
-        _vehicles = vehicles;
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _bookings = bookings;
+          _crops = crops;
+          _users = users;
+          _vehicles = vehicles;
+          _loading = false;
+        });
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _loading = false);
@@ -63,9 +65,7 @@ class _AgentDashboardState extends State<AgentDashboard> with SingleTickerProvid
     }
   }
 
-  // Dispatch / Request Decision Dialog
   void _showDispatchDialog(TransportBooking booking) {
-    // Filter drivers
     final drivers = _users.where((u) => u.role == UserRole.driver).toList();
     User? selectedDriver = drivers.isNotEmpty ? drivers.first : null;
     DriverVehicle? selectedVehicle = _vehicles.isNotEmpty ? _vehicles.first : null;
@@ -74,7 +74,7 @@ class _AgentDashboardState extends State<AgentDashboard> with SingleTickerProvid
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) {
+        builder: (dialogCtx, setDialogState) {
           return AlertDialog(
             title: Text('Review Request: ${booking.id}'),
             content: SingleChildScrollView(
@@ -105,7 +105,7 @@ class _AgentDashboardState extends State<AgentDashboard> with SingleTickerProvid
                   const SizedBox(height: 8),
 
                   DropdownButtonFormField<User>(
-                    value: selectedDriver,
+                    initialValue: selectedDriver,
                     decoration: const InputDecoration(labelText: 'Assign Driver'),
                     items: drivers.map((d) {
                       return DropdownMenuItem(
@@ -120,7 +120,7 @@ class _AgentDashboardState extends State<AgentDashboard> with SingleTickerProvid
                   const SizedBox(height: 12),
 
                   DropdownButtonFormField<DriverVehicle>(
-                    value: selectedVehicle,
+                    initialValue: selectedVehicle,
                     decoration: const InputDecoration(labelText: 'Assign Fleet Vehicle'),
                     items: _vehicles.map((v) {
                       return DropdownMenuItem(
@@ -187,9 +187,8 @@ class _AgentDashboardState extends State<AgentDashboard> with SingleTickerProvid
                         );
                       }
                     }
-                  } else if (drivers.isEmpty || _vehicles.isEmpty) {
-                    // Fallback accept without specific driver
-                    await ApiService.updateBookingStatus(token!, booking.id, 'ACCEPTED');
+                  } else if (token != null && (drivers.isEmpty || _vehicles.isEmpty)) {
+                    await ApiService.updateBookingStatus(token, booking.id, 'ACCEPTED');
                     if (mounted) {
                       Navigator.pop(ctx);
                       _loadData();
@@ -313,7 +312,7 @@ class _AgentDashboardState extends State<AgentDashboard> with SingleTickerProvid
                   const SizedBox(height: 16),
 
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.between,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text('Requests Pending Review', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       Text('${pendingBookings.length} items', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
@@ -345,7 +344,7 @@ class _AgentDashboardState extends State<AgentDashboard> with SingleTickerProvid
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.between,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       'Farmer: ${b.requesterName ?? b.requesterId}',
@@ -423,7 +422,7 @@ class _AgentDashboardState extends State<AgentDashboard> with SingleTickerProvid
                                 Text('KES ${c.askingPricePerKg}/${c.unit}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryGreen)),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                                  decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
                                   child: Text(c.status, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
                                 ),
                               ],
@@ -447,7 +446,7 @@ class _AgentDashboardState extends State<AgentDashboard> with SingleTickerProvid
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.between,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text('All Transport Bookings', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       DropdownButton<String>(
@@ -501,7 +500,7 @@ class _AgentDashboardState extends State<AgentDashboard> with SingleTickerProvid
                                 const SizedBox(height: 4),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                                  decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
                                   child: Text(b.status, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
                                 ),
                               ],

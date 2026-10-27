@@ -31,9 +31,11 @@ class _DriverDashboardState extends State<DriverDashboard> {
     setState(() => _isLoading = true);
     try {
       final trips = await ApiService.getAssignedTrips(auth.token!);
-      setState(() {
-        _assignedTrips = trips;
-      });
+      if (mounted) {
+        setState(() {
+          _assignedTrips = trips;
+        });
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -86,7 +88,6 @@ class _DriverDashboardState extends State<DriverDashboard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Driver Profile Card
             Card(
               color: Colors.amber.shade800,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -122,13 +123,12 @@ class _DriverDashboardState extends State<DriverDashboard> {
             ),
             const SizedBox(height: 16),
 
-            // Vehicle Status Toggle
             Card(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.between,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -139,7 +139,7 @@ class _DriverDashboardState extends State<DriverDashboard> {
                     ),
                     Switch(
                       value: _vehicleStatus == 'IN_TRANSIT',
-                      activeColor: AppColors.primaryGreen,
+                      activeThumbColor: AppColors.primaryGreen,
                       onChanged: (val) {
                         setState(() {
                           _vehicleStatus = val ? 'IN_TRANSIT' : 'IDLE';
@@ -153,7 +153,7 @@ class _DriverDashboardState extends State<DriverDashboard> {
             const SizedBox(height: 20),
 
             Row(
-              mainAxisAlignment: MainAxisAlignment.between,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Assigned Dispatch Trips', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 Text('${_assignedTrips.length} active', style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
@@ -192,7 +192,7 @@ class _DriverDashboardState extends State<DriverDashboard> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.between,
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
                                           'TRIP #${trip.id}',
@@ -233,7 +233,7 @@ class _DriverDashboardState extends State<DriverDashboard> {
                                     ),
                                     const SizedBox(height: 8),
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.between,
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
                                           'Compensation: KES ${trip.price.toStringAsFixed(0)}',

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../models/trip.dart';
 import '../services/api_service.dart';
@@ -19,6 +21,11 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
   List<DeliveryStatusLog> _logs = [];
   bool _isLoading = true;
 
+  // Default Kenya Coordinates
+  final LatLng _pickupCoord = const LatLng(-0.2833, 36.0667); // Nakuru
+  final LatLng _destCoord = const LatLng(-1.286389, 36.817223); // Nairobi
+  final LatLng _driverCoord = const LatLng(-0.7167, 36.4333); // En route near Naivasha
+
   @override
   void initState() {
     super.initState();
@@ -33,10 +40,12 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
     try {
       final trip = await ApiService.getTripDetail(auth.token!, widget.tripId);
       final logs = await ApiService.getTripTrackingLogs(auth.token!, widget.tripId);
-      setState(() {
-        _trip = trip;
-        _logs = logs;
-      });
+      if (mounted) {
+        setState(() {
+          _trip = trip;
+          _logs = logs;
+        });
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -103,7 +112,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.between,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     trip.cropName ?? 'Cargo Shipment',
@@ -120,22 +129,82 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                               ),
                               const SizedBox(height: 12),
 
-                              // Progress Bar
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(4),
                                 child: LinearProgressIndicator(
                                   value: progressRatio,
                                   minHeight: 10,
                                   backgroundColor: Colors.white24,
-                                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.emeraldAccent),
+                                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.emerald),
                                 ),
                               ),
                               const SizedBox(height: 8),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.between,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text('${(progressRatio * 100).toStringAsFixed(0)}% Completed', style: const TextStyle(color: Colors.white70, fontSize: 12)),
                                   Text('${(trip.totalWeightKg ?? 5000).toStringAsFixed(0)} kg', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Interactive Map Component
+                      Card(
+                        clipBehavior: Clip.antiAlias,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        child: SizedBox(
+                          height: 220,
+                          child: FlutterMap(
+                            options: MapOptions(
+                              initialCenter: _driverCoord,
+                              initialZoom: 8.5,
+                            ),
+                            children: [
+                              TileLayer(
+                                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                userAgentPackageName: 'com.dynamicagrilogistics.farmer_logistics_mobile',
+                              ),
+                              PolylineLayer(
+                                polylines: [
+                                  Polyline(
+                                    points: [_pickupCoord, _driverCoord, _destCoord],
+                                    strokeWidth: 4.0,
+                                    color: AppColors.primaryGreen,
+                                  ),
+                                ],
+                              ),
+                              MarkerLayer(
+                                markers: [
+                                  Marker(
+                                    point: _pickupCoord,
+                                    width: 36,
+                                    height: 36,
+                                    child: const Icon(Icons.location_on, color: Colors.green, size: 36),
+                                  ),
+                                  Marker(
+                                    point: _driverCoord,
+                                    width: 40,
+                                    height: 40,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue.shade800,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.white, width: 2),
+                                      ),
+                                      child: const Icon(Icons.local_shipping, color: Colors.white, size: 22),
+                                    ),
+                                  ),
+                                  Marker(
+                                    point: _destCoord,
+                                    width: 36,
+                                    height: 36,
+                                    child: const Icon(Icons.flag, color: Colors.red, size: 36),
+                                  ),
                                 ],
                               ),
                             ],
@@ -152,10 +221,10 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                           padding: const EdgeInsets.all(16.0),
                           child: Row(
                             children: [
-                              CircleAvatar(
+                              const CircleAvatar(
                                 radius: 24,
                                 backgroundColor: AppColors.lightGreen,
-                                child: const Icon(Icons.person, color: AppColors.primaryGreen, size: 28),
+                                child: Icon(Icons.person, color: AppColors.primaryGreen, size: 28),
                               ),
                               const SizedBox(width: 12),
                               Expanded(

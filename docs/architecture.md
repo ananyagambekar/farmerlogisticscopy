@@ -1,77 +1,88 @@
 # Dynamic Agri-Logistics System Architecture
 
-## Overview
-**Dynamic Agri-Logistics: Adaptive Transport System for Volatile Markets** is an enterprise cross-platform agricultural supply chain platform connecting smallholder Farmers, Aggregators/Agents, Transporters/Drivers, Produce Receivers/Hubs, and Operations Administrators.
+## 1. Executive System Overview
+
+The **Dynamic Agri-Logistics System** is an adaptive, multi-tenant agricultural logistics platform designed to optimize produce transportation, reduce post-harvest losses, provide real-time spatial route tracking, and deliver transparent pricing across volatile regional produce markets.
+
+The system connects five primary stakeholder roles through a unified micro-service backend:
+1. **Farmer**: Lists harvested produce, requests freight transport, receives automated fare quotes, and tracks live dispatch.
+2. **Agent**: Aggregates produce listings, reviews freight requests, assigns verified drivers & vehicles, and manages regional dispatch.
+3. **Driver**: Manages assigned trips, tracks route turn-by-turn with GPS status streams, updates dispatch states, and consents to live GPS tracking.
+4. **Receiver (Hub/Market)**: Inspects incoming shipments, records actual received cargo weight, rate cargo quality, and logs discrepancy reports.
+5. **Administrator**: Oversees system health, user account permissions, vehicle fleet registers, and dynamic tariff algorithms.
+
+---
+
+## 2. Monorepo Architecture Blueprint
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           Client Applications                           │
-├───────────────────────────────────┬─────────────────────────────────────┤
-│ Mobile App (Flutter Dart / Android)│ Web Dashboard (React + Vite + TS)   │
-│ - Farmers, Agents, Drivers,       │ - Admin & Regional Operations       │
-│   Receivers                       │ - Users, Crops, Bookings, System    │
-└─────────────────┬─────────────────┴──────────────────┬──────────────────┘
-                  │                                    │
-                  │ REST API (HTTPS/JWT)               │
-                  ▼                                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Express REST API (TypeScript)                        │
-│ - JWT Authentication, Role Guards, Phone Normalization, Rate Limiter    │
-├──────────────┬──────────────┬──────────────┬──────────────┬─────────────┤
-│ Auth Module  │ Users Module │ Crops Module │ Bookings     │ Trips Engine│
-└──────────────┴──────┬───────┴──────────────┴──────┬───────┴──────┬──────┘
-                      │                             │              │
-                      ▼                             ▼              ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         Prisma ORM / PostgreSQL                         │
-│ - User, CropListing, TransportBooking, DriverVehicle, TripAssignment,   │
-│   DeliveryStatusLog, SystemConfig                                       │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-## Monorepo Directory Layout
-```
-/farmerlogistics
-├── backend/                  # Express REST API + Prisma ORM + TypeScript
-│   ├── prisma/
-│   │   └── schema.prisma     # PostgreSQL data schema
-│   ├── src/
-│   │   ├── controllers/      # Auth, User, Crop, Booking, Trip, Vehicle, Config
-│   │   ├── middleware/       # JWT Auth, Role Guard, Rate Limiter, Validation
-│   │   ├── routes/           # REST endpoints
-│   │   ├── services/         # State store & seed manager
-│   │   └── utils/            # Phone normalization, Password hashing, JWT
-│   └── scripts/              # Seeding scripts
-├── mobile/                   # Flutter cross-platform mobile app
+dynamic-agri-logistics/
+├── mobile/                  # Flutter Cross-Platform Mobile Application
 │   ├── lib/
-│   │   ├── models/           # User, Crop, Booking, Trip, Vehicle models
-│   │   ├── screens/          # Role-based dashboards (Farmer, Agent, Driver, Receiver, Admin)
-│   │   ├── services/         # API Service & Auth State Provider
-│   │   └── theme/            # Agricultural green, white, earthy M3 design
-│   └── test/                 # Unit & widget tests
-├── web/                      # React + TypeScript + Vite Web Console
-│   └── src/
-│       ├── components/       # Navbar, Sidebar, ProtectedRoute
-│       ├── pages/            # Dashboard, Users, Crops, Bookings, Trips, Settings
-│       └── services/         # API Client
-├── docs/                     # Architecture, API & User guides
-└── scripts/                  # PowerShell orchestration scripts (setup, start, health-check, stop)
+│   │   ├── main.dart        # Entry point with Role-based Provider Routing
+│   │   ├── models/          # Data Models (User, Crop, Booking, Trip, Vehicle)
+│   │   ├── screens/         # Role Dashboards & Live Tracking Console
+│   │   ├── services/        # HTTP API Service Layer
+│   │   └── theme/           # App Material 3 Theme & Color Palette
+│   └── android/             # Native Android Platform Scaffolding (Gradle & Manifest)
+│
+├── web/                     # React + TypeScript + Vite Admin Web Dashboard
+│   ├── src/
+│   │   ├── components/      # UI Layout, Navigation & Leaflet Map Components
+│   │   ├── pages/           # Admin Pages (Live Tracking, Crops, Bookings, Users)
+│   │   └── services/        # Axios / Fetch API Service Wrapper
+│   ├── index.html           # Leaflet CSS & Tailwind UI Head Setup
+│   └── package.json
+│
+├── backend/                 # Node.js + TypeScript + Express.js REST Service
+│   ├── src/
+│   │   ├── controllers/     # Auth, Crops, Bookings, Trips, Deliveries, Vehicles
+│   │   ├── middleware/      # JWT Authentication, Role Guards, Rate Limiting
+│   │   ├── services/        # Persistence Store & Prisma Database Service
+│   │   └── utils/           # Password Hashing, JWT Sign, Phone Normalizer
+│   ├── prisma/
+│   │   └── schema.prisma    # PostgreSQL Relational Data Schema
+│   └── package.json
+│
+├── docs/                    # Architecture, API & User Guide Documentation
+├── scripts/                 # PowerShell Automation Scripts (setup, start, stop)
+├── .env.example
+├── README.md
+└── PROJECT_STATUS.md
 ```
 
-## Database Entity Relationship & Roles Matrix
+---
 
-### Models
-1. **User**: `id`, `phone` (unique), `email` (unique), `password` (hashed), `fullName`, `role` (`FARMER` | `AGENT` | `DRIVER` | `RECEIVER` | `ADMIN`), `isActive`, `createdAt`, `updatedAt`.
-2. **CropListing**: `id`, `farmerId`, `cropType`, `quantityKg`, `askingPricePerKg`, `location`, `status`, `harvestDate`.
-3. **TransportBooking**: `id`, `requesterId`, `cropListingId`, `origin`, `destination`, `totalWeightKg`, `vehicleTypeRequired`, `estimatedCost`, `status`.
-4. **DriverVehicle**: `id`, `driverId`, `vehicleType`, `capacityKg`, `licensePlate`, `status`.
-5. **TripAssignment**: `id`, `bookingId`, `driverId`, `vehicleId`, `status`, `price`, `assignedAt`, `startedAt`, `completedAt`.
-6. **DeliveryStatusLog**: `id`, `tripAssignmentId`, `status`, `location`, `notes`, `timestamp`.
-7. **SystemConfig**: `id`, `key` (unique), `value`, `description`.
+## 3. Data Flow & Communication Lifecycle
 
-### Role Permissions
-- **FARMER**: Create and manage crop listings; request transport bookings for produce.
-- **AGENT**: Aggregate produce from multiple farmers; book combined transport; track commissions.
-- **DRIVER**: Register vehicles; receive trip assignments; update vehicle status and delivery logs in transit.
-- **RECEIVER**: View incoming produce shipments; verify and confirm produce quality upon arrival.
-- **ADMIN**: Access system metrics, manage user statuses, modify dynamic system pricing configurations. Cannot be registered publicly via mobile API.
+1. **Produce Listing & Request Creation**:
+   - Farmer logs in and creates a produce listing (e.g. 5,000 kg Grade A Yellow Maize).
+   - Farmer requests freight dispatch by providing pickup and destination locations.
+   - The backend rule engine executes dynamic pricing calculations based on distance, weight, and vehicle refrigeration factor.
+
+2. **Agent Review & Driver Dispatch**:
+   - Regional Agent sees pending transport requests on their Hub Dashboard.
+   - Agent reviews request requirements and assigns an available driver and registered vehicle (e.g., 10-Ton Refrigerated Truck `KCF 789X`).
+   - The booking transitions from `REQUESTED` to `ASSIGNED`.
+
+3. **Driver Execution & GPS Streaming**:
+   - Driver sees assigned trip on their Driver Console.
+   - Driver advances trip state: `ASSIGNED` ➔ `EN_ROUTE_PICKUP` ➔ `PICKED_UP` ➔ `IN_TRANSIT` ➔ `ARRIVED` ➔ `DELIVERED`.
+   - Live location updates stream to `delivery_status_logs` and render on the interactive map (`flutter_map` on mobile and `Leaflet` on web).
+
+4. **Receiver Verification & Settlement**:
+   - Receiver at Nairobi Fresh Produce Hub views incoming produce shipments with estimated arrival times.
+   - Upon arrival, Receiver verifies received weight, selects condition rating (`EXCELLENT`, `GOOD`, `ACCEPTABLE`, `DAMAGED`), and submits confirmation.
+   - Produce status automatically updates to `SOLD`.
+
+---
+
+## 4. Map & GIS Integration Strategy
+
+- **Web Map**: Uses Leaflet JS with OpenStreetMap tile layer (`https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`).
+- **Mobile Map**: Uses `flutter_map` with `latlong2` package.
+- **Markers & Routing**:
+  - Green Marker `P`: Pickup Point (Origin)
+  - Red Marker `D`: Delivery Point (Destination)
+  - Blue Marker `🚛`: Live Vehicle / Driver Position
+  - Polyline: Spatial route visualizer between pickup, driver position, and destination.

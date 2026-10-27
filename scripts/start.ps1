@@ -1,16 +1,36 @@
-# PowerShell launch script for backend and web servers
+# Dynamic Agri-Logistics Start Services Script
+$ErrorActionPreference = "Continue"
 
-Write-Host "🚀 Launching Dynamic Agri-Logistics Servers..." -ForegroundColor Green
+Write-Host "🚀 Starting Dynamic Agri-Logistics Services..." -ForegroundColor Green
 
-# Launch Backend in new process
+# Unset conflicting Android environment variables if present
+$env:ANDROID_PREFS_ROOT = $null
+
+# 1. Start Backend in Background Process
 $backendPath = Join-Path $PSScriptRoot "..\backend"
-Write-Host "Starting Backend API server on http://localhost:3000..." -ForegroundColor Yellow
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$backendPath'; npm run dev"
+Write-Host "🌱 Launching Node.js Express Backend on http://localhost:3000..." -ForegroundColor Cyan
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$backendPath'; npm run dev" -WindowStyle Normal
 
-# Launch Web in new process
+Start-Sleep -Seconds 3
+
+# 2. Start Web Dashboard in Background Process
 $webPath = Join-Path $PSScriptRoot "..\web"
-Write-Host "Starting Web Console server on http://localhost:5173..." -ForegroundColor Yellow
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$webPath'; npm run dev"
+Write-Host "💻 Launching React Vite Web Dashboard on http://localhost:5173..." -ForegroundColor Cyan
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$webPath'; npm run dev" -WindowStyle Normal
 
-Write-Host "`n✅ Both Backend and Web servers launched!" -ForegroundColor Green
-Write-Host "Run `health-check.ps1` to test backend readiness." -ForegroundColor Cyan
+Start-Sleep -Seconds 2
+
+# 3. Check Backend Health
+Write-Host "`n🩺 Checking Backend Health Endpoint..." -ForegroundColor Cyan
+try {
+    $response = Invoke-RestMethod -Uri "http://localhost:3000/api/v1/health" -Method Get
+    Write-Host "  ✅ Backend Health Status: $($response.status)" -ForegroundColor Green
+    Write-Host "  Service: $($response.service)" -ForegroundColor Gray
+} catch {
+    Write-Host "  ⚠️ Backend still initializing. Try running .\scripts\health-check.ps1 in a few seconds." -ForegroundColor Yellow
+}
+
+Write-Host "`n🎉 All services initiated! Access points:" -ForegroundColor Green
+Write-Host "  - Backend REST API: http://localhost:3000/api/v1" -ForegroundColor White
+Write-Host "  - Web Operations Dashboard: http://localhost:5173" -ForegroundColor White
+Write-Host "  - Android Emulator API Host: http://10.0.2.2:3000/api/v1" -ForegroundColor White

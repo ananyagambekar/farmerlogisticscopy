@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
-import '../theme/app_theme.dart';
 
 class AdminDashboard extends StatelessWidget {
   const AdminDashboard({super.key});
@@ -15,7 +14,10 @@ class AdminDashboard extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Admin System Metrics'),
         actions: [
-          IconButton(icon: const Icon(Icons.logout), onPressed: () => auth.logout()),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () => auth.logout(),
+          ),
         ],
       ),
       body: Padding(
@@ -57,7 +59,6 @@ class AdminDashboard extends StatelessWidget {
             const SizedBox(height: 20),
             const Text('System Operations Summary', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 8),
-
             const Card(
               child: ListTile(
                 leading: Icon(Icons.people, color: Colors.purple),

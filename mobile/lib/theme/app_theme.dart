@@ -11,6 +11,15 @@ class AppColors {
   static const Color textMuted = Color(0xFF616161);
   static const Color errorRed = Color(0xFFD32F2F);
   static const Color warningAmber = Color(0xFFF57C00);
+
+  // Modern UI Palette
+  static const Color emerald = Color(0xFF10B981);
+  static const Color emeraldDark = Color(0xFF047857);
+  static const Color emeraldLight = Color(0xD1ECFDF5);
+  static const Color slate = Color(0xFF64748B);
+  static const Color slateDark = Color(0xFF1E293B);
+  static const Color slate300 = Color(0xFFCBD5E1);
+  static const Color slate400 = Color(0xFF94A3B8);
 }
 
 class AppTheme {
@@ -21,7 +30,6 @@ class AppTheme {
         seedColor: AppColors.primaryGreen,
         primary: AppColors.primaryGreen,
         secondary: AppColors.accentEarth,
-        background: AppColors.backgroundLight,
         surface: AppColors.surfaceWhite,
         error: AppColors.errorRed,
       ),
@@ -73,7 +81,7 @@ class AppTheme {
           borderSide: const BorderSide(color: AppColors.errorRed),
         ),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: Colors.white,
         elevation: 1,
         shape: RoundedRectangleBorder(

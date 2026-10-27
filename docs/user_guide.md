@@ -1,45 +1,90 @@
-# User Onboarding & Operations Guide
+# Dynamic Agri-Logistics User & Quickstart Guide
 
-## Getting Started
-The Dynamic Agri-Logistics platform provides adaptive agricultural transport and marketplace management tailored for volatile supply chains.
-
-### Default Test Accounts
-- **Administrator Console (Web)**: Phone: `+10000000000` | Password: `Password123!`
-- **Farmer User (Mobile)**: Phone: `+1254700000001` | Password: `Password123!`
-- **Agent / Aggregator (Mobile)**: Phone: `+1254700000002` | Password: `Password123!`
-- **Transporter Driver (Mobile)**: Phone: `+1254700000003` | Password: `Password123!`
-- **Produce Receiver (Mobile)**: Phone: `+1254700000004` | Password: `Password123!`
+Welcome to the **Dynamic Agri-Logistics Platform**. This guide provides step-by-step instructions to run, navigate, and test the mobile application, web dashboard, and backend services.
 
 ---
 
-## Mobile Application User Flows
+## 1. Quickstart - Running the Project
 
-### 1. Registration & Authentication
-1. Launch the mobile application.
-2. Select **Register Here**.
-3. Choose your participant role: `FARMER`, `AGENT`, `DRIVER`, or `RECEIVER`.
-4. Enter your Full Name, Phone Number, and Password.
-5. Tap **Complete Registration**. The application will automatically authenticate and present your dedicated role dashboard.
+### Prerequisites
+- Node.js v18+ and NPM v9+
+- Flutter SDK v3.19+ (with Android SDK installed)
+- PowerShell (Windows) or Terminal (macOS/Linux)
 
-### 2. Farmer Workflow
-- **Listing Produce**: Tap **List Crop** on the dashboard, enter crop details (e.g. Maize, 5,000 kg, KES 45/kg), and confirm.
-- **Requesting Transport**: Tap **Book Transport** to request logistics dispatch for your harvested produce.
+### Step 1: Environment Setup
+Run the setup script from PowerShell at the project root:
+```powershell
+.\scripts\setup.ps1
+```
+This script will:
+- Check required CLI tools (Node, NPM, Flutter)
+- Install backend and web dependencies
+- Generate Prisma Client ORM files
+- Configure Android `local.properties` with SDK paths
 
-### 3. Driver & Fleet Console
-- **Status Toggle**: Switch your vehicle status between `IDLE` and `IN_TRANSIT`.
-- **Active Trip Delivery**: View assigned pickup & destination locations. Update status to `AT_DELIVERY` upon arrival.
-
-### 4. Agent & Aggregator
-- View aggregated produce weight, track commissions, and coordinate logistics between farmers and regional distribution hubs.
+### Step 2: Start All Services
+Launch backend and web services in background processes:
+```powershell
+.\scripts\start.ps1
+```
+Service Endpoints:
+- **Backend API**: `http://localhost:3000/api/v1`
+- **Health Check**: `http://localhost:3000/api/v1/health`
+- **Web Admin Dashboard**: `http://localhost:5173`
 
 ---
 
-## Web Operations Dashboard
+## 2. Default Seed Accounts for Testing
 
-1. Open `http://localhost:5173` in your browser.
-2. Log in with Admin credentials (`+10000000000` / `Password123!`).
-3. Access real-time operational tabs:
-   - **Dashboard**: System overview and metric KPIs.
-   - **Users & Roles**: Manage and toggle user account statuses.
-   - **Crop Listings & Transport Bookings**: Inspect active supply chain activity.
-   - **System Config**: Adjust dynamic tariff and commission parameters.
+| Role | Phone Number | Password | Purpose / Access |
+| :--- | :--- | :--- | :--- |
+| **FARMER** | `+1254700000001` | `Password123!` | Create produce listings, request transport, view quotes |
+| **AGENT** | `+1254700000002` | `Password123!` | Review requests, assign drivers & vehicles, manage dispatch |
+| **DRIVER** | `+1254700000003` | `Password123!` | View assigned trips, advance status, share live location |
+| **RECEIVER** | `+1254700000004` | `Password123!` | View incoming produce, verify cargo weight, rate quality |
+| **ADMIN** | `+10000000000` | `Password123!` | Full system operations, user management, tariff configs |
+
+---
+
+## 3. Running the Flutter Mobile App
+
+1. Start an Android Emulator in Android Studio or connect a physical Android device.
+2. Navigate to the mobile directory and run:
+```powershell
+cd mobile
+flutter run
+```
+3. To build a standalone debug Android APK file:
+```powershell
+cd mobile
+flutter build apk --debug
+```
+The generated APK will be located at:
+`mobile/build/app/outputs/flutter-apk/app-debug.apk`
+
+---
+
+## 4. Operational Workflows
+
+### A. Farmer Workflow
+1. Log in with `+1254700000001` / `Password123!`.
+2. On the **My Produce** tab, tap **List New Crop**.
+3. Enter crop details (e.g. 5,000 kg Yellow Maize at KES 45/kg).
+4. Go to **Request Freight** tab, choose vehicle type (e.g. 10-Ton Refrigerated Truck), and view auto-calculated fare.
+5. Submit transport request.
+
+### B. Agent Workflow
+1. Log in with `+1254700000002` / `Password123!`.
+2. On the **Incoming Requests** tab, view incoming farmer bookings.
+3. Tap **Review & Dispatch Driver**, select driver David Ochieng and vehicle `KCF 789X`.
+4. Tap **Accept & Dispatch**.
+
+### C. Driver Workflow
+1. Log in with `+1254700000003` / `Password123!`.
+2. Open assigned trip console and view pickup/destination route on the interactive map.
+3. Advance status from `ASSIGNED` ➔ `EN_ROUTE_PICKUP` ➔ `IN_TRANSIT` ➔ `DELIVERED`.
+
+### D. Receiver Workflow
+1. Log in with `+1254700000004` / `Password123!`.
+2. View incoming produce on the **Incoming Shipments** tab.
+3. Tap **Verify & Receive Shipment**, input received weight, select condition rating (`EXCELLENT`), and confirm receipt.

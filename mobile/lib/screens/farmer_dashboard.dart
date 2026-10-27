@@ -19,8 +19,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
   List<CropListing> _crops = [];
   List<TransportBooking> _bookings = [];
   bool _loading = true;
-  String _searchQuery = '';
-  String _statusFilter = 'ALL';
+  String _selectedCropFilter = 'ALL';
 
   @override
   void initState() {
@@ -43,11 +42,14 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
     try {
       final crops = await ApiService.getCrops(token);
       final bookings = await ApiService.getBookings(token);
-      setState(() {
-        _crops = crops;
-        _bookings = bookings;
-        _loading = false;
-      });
+
+      if (mounted) {
+        setState(() {
+          _crops = crops;
+          _bookings = bookings;
+          _loading = false;
+        });
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _loading = false);
@@ -55,26 +57,23 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
     }
   }
 
-  // Add / Edit Crop Dialog with Validation
   void _showCropDialog({CropListing? existingCrop}) {
     final formKey = GlobalKey<FormState>();
-    final cropTypeCtrl = TextEditingController(text: existingCrop?.cropType ?? '');
+    final typeCtrl = TextEditingController(text: existingCrop?.cropType ?? '');
     final qtyCtrl = TextEditingController(text: existingCrop != null ? existingCrop.quantityKg.toString() : '');
     final priceCtrl = TextEditingController(text: existingCrop != null ? existingCrop.askingPricePerKg.toString() : '');
-    final locationCtrl = TextEditingController(text: existingCrop?.location ?? 'Nakuru North Farm');
+    final locationCtrl = TextEditingController(text: existingCrop?.location ?? '');
     final notesCtrl = TextEditingController(text: existingCrop?.description ?? '');
 
     String selectedUnit = existingCrop?.unit ?? 'kg';
-    DateTime selectedHarvestDate = existingCrop != null && existingCrop.harvestDate.isNotEmpty
-        ? DateTime.tryParse(existingCrop.harvestDate) ?? DateTime.now()
-        : DateTime.now();
+    DateTime selectedHarvestDate = existingCrop != null ? DateTime.parse(existingCrop.harvestDate) : DateTime.now();
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
-            title: Text(existingCrop == null ? 'Add Crop Listing' : 'Edit Crop Listing'),
+            title: Text(existingCrop == null ? 'List New Crop Produce' : 'Edit Crop Listing'),
             content: SingleChildScrollView(
               child: Form(
                 key: formKey,
@@ -82,12 +81,12 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextFormField(
-                      controller: cropTypeCtrl,
+                      controller: typeCtrl,
                       decoration: const InputDecoration(
-                        labelText: 'Crop Name / Type *',
-                        hintText: 'e.g., Maize (Grade A), Tomatoes',
+                        labelText: 'Crop Type / Name *',
+                        hintText: 'e.g., Grade A Yellow Maize',
                       ),
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Please enter crop name' : null,
+                      validator: (v) => v == null || v.trim().isEmpty ? 'Enter crop name' : null,
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -97,9 +96,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
                           child: TextFormField(
                             controller: qtyCtrl,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: const InputDecoration(
-                              labelText: 'Quantity *',
-                            ),
+                            decoration: const InputDecoration(labelText: 'Quantity *'),
                             validator: (v) {
                               if (v == null || v.trim().isEmpty) return 'Enter quantity';
                               final numVal = double.tryParse(v);
@@ -112,7 +109,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
                         Expanded(
                           flex: 1,
                           child: DropdownButtonFormField<String>(
-                            value: selectedUnit,
+                            initialValue: selectedUnit,
                             decoration: const InputDecoration(labelText: 'Unit'),
                             items: const [
                               DropdownMenuItem(value: 'kg', child: Text('kg')),
@@ -195,17 +192,18 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
               ElevatedButton(
                 onPressed: () async {
                   if (formKey.currentState!.validate()) {
-                    final token = Provider.of<AuthService>(context, listen: false).token;
+                    final auth = Provider.of<AuthService>(context, listen: false);
+                    final token = auth.token;
                     if (token == null) return;
 
                     final cropData = {
-                      'cropType': cropTypeCtrl.text.trim(),
+                      'cropType': typeCtrl.text.trim(),
                       'quantityKg': double.parse(qtyCtrl.text.trim()),
                       'unit': selectedUnit,
                       'askingPricePerKg': double.parse(priceCtrl.text.trim()),
                       'location': locationCtrl.text.trim(),
-                      'harvestDate': selectedHarvestDate.toIso8601String(),
                       'description': notesCtrl.text.trim(),
+                      'harvestDate': selectedHarvestDate.toIso8601String(),
                     };
 
                     try {
@@ -214,11 +212,12 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
                       } else {
                         await ApiService.updateCrop(token, existingCrop.id, cropData);
                       }
+
                       if (mounted) {
                         Navigator.pop(ctx);
                         _loadData();
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(existingCrop == null ? 'Crop listed successfully!' : 'Crop updated successfully!')),
+                          SnackBar(content: Text(existingCrop == null ? 'Crop listed successfully!' : 'Crop updated!')),
                         );
                       }
                     } catch (e) {
@@ -230,7 +229,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
                     }
                   }
                 },
-                child: Text(existingCrop == null ? 'Save Listing' : 'Update Listing'),
+                child: Text(existingCrop == null ? 'Post Listing' : 'Save Changes'),
               ),
             ],
           );
@@ -239,71 +238,29 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
     );
   }
 
-  // Delete Confirmation
-  void _confirmDeleteCrop(CropListing crop) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Crop Listing'),
-        content: Text('Are you sure you want to delete "${crop.cropType}"?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () async {
-              final token = Provider.of<AuthService>(context, listen: false).token;
-              if (token != null) {
-                try {
-                  await ApiService.deleteCrop(token, crop.id);
-                  if (mounted) {
-                    Navigator.pop(ctx);
-                    _loadData();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Crop listing deleted')),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-                    );
-                  }
-                }
-              }
-            },
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Transport Booking Dialog
   void _showBookingDialog({CropListing? preselectedCrop}) {
     final formKey = GlobalKey<FormState>();
     CropListing? selectedCrop = preselectedCrop ?? (_crops.isNotEmpty ? _crops.first : null);
-    final pickupCtrl = TextEditingController(text: selectedCrop?.location ?? 'Nakuru North Farm');
-    final destCtrl = TextEditingController(text: 'Nairobi Central Wholesale Market');
+
+    final pickupCtrl = TextEditingController(text: selectedCrop?.location ?? '');
+    final destCtrl = TextEditingController(text: 'Nairobi Central Produce Market');
     final weightCtrl = TextEditingController(text: selectedCrop != null ? selectedCrop.quantityKg.toString() : '1000');
 
-    String selectedVehicle = '3-Ton Truck';
+    String selectedVehicle = '10-Ton Refrigerated Truck';
     DateTime targetDate = DateTime.now().add(const Duration(days: 1));
-    double estimatedCost = 0.0;
+    double estimatedCost = 15000;
     bool estimating = false;
 
-    void updateEstimate(StateSetter setDialogState) async {
-      final token = Provider.of<AuthService>(context, listen: false).token;
-      if (token == null) return;
-
-      final w = double.tryParse(weightCtrl.text) ?? 1000;
+    Future<void> calculateEstimate(StateSetter setDialogState) async {
+      final w = double.tryParse(weightCtrl.text.trim()) ?? 1000;
       setDialogState(() => estimating = true);
       try {
-        final est = await ApiService.estimateTransportCost(token, {
-          'pickupLocation': pickupCtrl.text,
-          'destinationLocation': destCtrl.text,
-          'estimatedWeight': w,
-          'requiredVehicleType': selectedVehicle,
-        });
+        final est = await ApiService.calculatePricingEstimate(
+          weightKg: w,
+          vehicleType: selectedVehicle,
+          origin: pickupCtrl.text.trim(),
+          destination: destCtrl.text.trim(),
+        );
         setDialogState(() {
           estimatedCost = est;
           estimating = false;
@@ -317,12 +274,8 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) {
-          if (estimatedCost == 0.0 && !estimating) {
-            updateEstimate(setDialogState);
-          }
-
           return AlertDialog(
-            title: const Text('Book Transport Service'),
+            title: const Text('Request Transport Dispatch'),
             content: SingleChildScrollView(
               child: Form(
                 key: formKey,
@@ -331,8 +284,8 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
                   children: [
                     if (_crops.isNotEmpty)
                       DropdownButtonFormField<CropListing>(
-                        value: selectedCrop,
-                        decoration: const InputDecoration(labelText: 'Select Crop Listing'),
+                        initialValue: selectedCrop,
+                        decoration: const InputDecoration(labelText: 'Link Crop Produce (Optional)'),
                         items: _crops.map((c) {
                           return DropdownMenuItem(
                             value: c,
@@ -346,56 +299,51 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
                               pickupCtrl.text = val.location;
                               weightCtrl.text = val.quantityKg.toString();
                             });
-                            updateEstimate(setDialogState);
+                            calculateEstimate(setDialogState);
                           }
                         },
                       ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: pickupCtrl,
-                      decoration: const InputDecoration(labelText: 'Pickup Location *'),
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
-                      onChanged: (_) => updateEstimate(setDialogState),
+                      decoration: const InputDecoration(labelText: 'Pickup Location (Origin) *'),
+                      validator: (v) => v == null || v.trim().isEmpty ? 'Enter pickup location' : null,
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: destCtrl,
-                      decoration: const InputDecoration(labelText: 'Destination Location *'),
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
-                      onChanged: (_) => updateEstimate(setDialogState),
+                      decoration: const InputDecoration(labelText: 'Delivery Destination *'),
+                      validator: (v) => v == null || v.trim().isEmpty ? 'Enter destination' : null,
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: weightCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: const InputDecoration(labelText: 'Est. Weight (kg) *'),
-                            validator: (v) => double.tryParse(v ?? '') == null ? 'Invalid' : null,
-                            onChanged: (_) => updateEstimate(setDialogState),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: selectedVehicle,
-                            decoration: const InputDecoration(labelText: 'Vehicle Type'),
-                            items: const [
-                              DropdownMenuItem(value: 'Pickup Truck', child: Text('Pickup')),
-                              DropdownMenuItem(value: '3-Ton Truck', child: Text('3-Ton')),
-                              DropdownMenuItem(value: '10-Ton Truck', child: Text('10-Ton')),
-                              DropdownMenuItem(value: 'Refrigerated Truck', child: Text('Refrigerated')),
-                            ],
-                            onChanged: (val) {
-                              if (val != null) {
-                                setDialogState(() => selectedVehicle = val);
-                                updateEstimate(setDialogState);
-                              }
-                            },
-                          ),
-                        ),
+                    TextFormField(
+                      controller: weightCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(labelText: 'Total Cargo Weight (kg) *'),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Enter weight';
+                        final numVal = double.tryParse(v);
+                        if (numVal == null || numVal <= 0) return 'Must be > 0';
+                        return null;
+                      },
+                      onChanged: (_) => calculateEstimate(setDialogState),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedVehicle,
+                      decoration: const InputDecoration(labelText: 'Required Vehicle Type'),
+                      items: const [
+                        DropdownMenuItem(value: '3-Ton Pickup Truck', child: Text('3-Ton Pickup Truck')),
+                        DropdownMenuItem(value: '10-Ton Refrigerated Truck', child: Text('10-Ton Refrigerated Truck')),
+                        DropdownMenuItem(value: '15-Ton Flatbed Truck', child: Text('15-Ton Flatbed Truck')),
+                        DropdownMenuItem(value: '28-Ton Heavy Hauler', child: Text('28-Ton Heavy Hauler')),
                       ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() => selectedVehicle = val);
+                          calculateEstimate(setDialogState);
+                        }
+                      },
                     ),
                     const SizedBox(height: 12),
                     InkWell(
@@ -420,16 +368,15 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
                     ),
                     const SizedBox(height: 16),
 
-                    // Estimation Card
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: AppColors.lightGreen,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.primaryGreen.withOpacity(0.3)),
+                        border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.3)),
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.between,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text('Estimated Fare:', style: TextStyle(fontWeight: FontWeight.bold)),
                           estimating
@@ -467,7 +414,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
                       if (mounted) {
                         Navigator.pop(ctx);
                         _loadData();
-                        _tabController.animateTo(2); // Switch to History
+                        _tabController.animateTo(2);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Transport request submitted successfully!')),
                         );
@@ -513,32 +460,59 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
     }
   }
 
+  Future<void> _confirmDeleteCrop(CropListing crop) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Crop Listing?'),
+        content: Text('Are you sure you want to delete "${crop.cropType}"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final token = Provider.of<AuthService>(context, listen: false).token;
+      if (token == null) return;
+      try {
+        await ApiService.deleteCrop(token, crop.id);
+        if (mounted) {
+          _loadData();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Crop listing deleted')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthService>(context);
     final user = auth.currentUser;
 
-    // Filter crops
-    List<CropListing> filteredCrops = _crops.where((c) {
-      final matchesSearch = _searchQuery.isEmpty ||
-          c.cropType.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          c.location.toLowerCase().contains(_searchQuery.toLowerCase());
-      final matchesStatus = _statusFilter == 'ALL' || c.status.toUpperCase() == _statusFilter.toUpperCase();
-      return matchesSearch && matchesStatus;
-    }).toList();
+    final filteredCrops = _selectedCropFilter == 'ALL'
+        ? _crops
+        : _crops.where((c) => c.status.toUpperCase() == _selectedCropFilter.toUpperCase()).toList();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Farmer Portal'),
+        title: const Text('Farmer Produce Dashboard'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => auth.logout(),
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
+          IconButton(icon: const Icon(Icons.logout), onPressed: () => auth.logout()),
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -546,8 +520,8 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
           tabs: const [
-            Tab(icon: Icon(Icons.eco), text: 'My Crops'),
-            Tab(icon: Icon(Icons.local_shipping), text: 'Book Transport'),
+            Tab(icon: Icon(Icons.eco), text: 'My Produce'),
+            Tab(icon: Icon(Icons.local_shipping), text: 'Request Freight'),
             Tab(icon: Icon(Icons.history), text: 'Bookings'),
           ],
         ),
@@ -555,7 +529,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
       body: TabBarView(
         controller: _tabController,
         children: [
-          // TAB 1: CROP MANAGEMENT
+          // TAB 1: CROP LISTINGS
           RefreshIndicator(
             onRefresh: _loadData,
             child: SingleChildScrollView(
@@ -564,7 +538,6 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // User Banner
                   Card(
                     color: AppColors.primaryGreen,
                     child: Padding(
@@ -582,12 +555,12 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Welcome, ${user?.fullName ?? 'Farmer'}!',
+                                  user?.fullName ?? 'Welcome Farmer',
                                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                                 ),
-                                const Text(
-                                  'Manage crop inventory & request logistics',
-                                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                                Text(
+                                  '${_crops.length} active produce listings • ${_bookings.length} freight requests',
+                                  style: const TextStyle(color: Colors.white70, fontSize: 12),
                                 ),
                               ],
                             ),
@@ -598,51 +571,34 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
                   ),
                   const SizedBox(height: 16),
 
-                  // Actions & Search Bar
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () => _showCropDialog(),
-                          icon: const Icon(Icons.add_circle_outline),
-                          label: const Text('List New Crop'),
+                      ElevatedButton.icon(
+                        onPressed: () => _showCropDialog(),
+                        icon: const Icon(Icons.add),
+                        label: const Text('List New Crop'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryGreen,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Search & Filter
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          onChanged: (v) => setState(() => _searchQuery = v),
-                          decoration: const InputDecoration(
-                            hintText: 'Search crops or location...',
-                            prefixIcon: Icon(Icons.search),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
                       DropdownButton<String>(
-                        value: _statusFilter,
+                        value: _selectedCropFilter,
                         items: const [
                           DropdownMenuItem(value: 'ALL', child: Text('All Status')),
                           DropdownMenuItem(value: 'AVAILABLE', child: Text('Available')),
                           DropdownMenuItem(value: 'RESERVED', child: Text('Reserved')),
                           DropdownMenuItem(value: 'SOLD', child: Text('Sold')),
                         ],
-                        onChanged: (val) {
-                          if (val != null) setState(() => _statusFilter = val);
+                        onChanged: (v) {
+                          if (v != null) setState(() => _selectedCropFilter = v);
                         },
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
 
-                  // Crop List
                   if (_loading)
                     const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()))
                   else if (filteredCrops.isEmpty)
@@ -651,12 +607,12 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
                         padding: const EdgeInsets.all(32),
                         child: Center(
                           child: Column(
-                            children: [
-                              const Icon(Icons.eco_outlined, size: 48, color: Colors.grey),
-                              const SizedBox(height: 8),
-                              const Text('No crop listings found.', style: TextStyle(fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 4),
-                              const Text('Tap "List New Crop" above to create your first listing.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                            children: const [
+                              Icon(Icons.eco_outlined, size: 48, color: Colors.grey),
+                              SizedBox(height: 8),
+                              Text('No crop listings found.', style: TextStyle(fontWeight: FontWeight.bold)),
+                              SizedBox(height: 4),
+                              Text('Tap "List New Crop" above to create your first listing.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
                             ],
                           ),
                         ),
@@ -678,7 +634,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.between,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Row(
                                       children: [
@@ -691,7 +647,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Text(crop.cropType, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                            Text('${crop.location}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                                            Text(crop.location, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
                                           ],
                                         ),
                                       ],
@@ -699,7 +655,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: statusColor.withOpacity(0.1),
+                                        color: statusColor.withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(12),
                                         border: Border.all(color: statusColor),
                                       ),
@@ -824,7 +780,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.between,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text('Transport Booking History', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       Text('${_bookings.length} requests', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
@@ -854,13 +810,13 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
                           child: ListTile(
                             contentPadding: const EdgeInsets.all(12),
                             title: Row(
-                              mainAxisAlignment: MainAxisAlignment.between,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text('${b.origin} ➔ ${b.destination}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: statusColor.withOpacity(0.1),
+                                    color: statusColor.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(color: statusColor),
                                   ),
@@ -877,7 +833,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
                                   Text('Driver: ${b.driverName} (${b.vehiclePlate ?? 'Assigned'})', style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.blue)),
                                 const SizedBox(height: 4),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.between,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text('Est. Price: KES ${b.estimatedCost.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryGreen)),
                                     ElevatedButton.icon(
@@ -891,7 +847,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> with SingleTickerProv
                                       onPressed: () {
                                         Navigator.push(
                                           context,
-                                          MaterialPageRoute(builder: (_) => LiveTrackingScreen(tripId: 'trip-001')),
+                                          MaterialPageRoute(builder: (_) => const LiveTrackingScreen(tripId: 'trip-001')),
                                         );
                                       },
                                     ),
